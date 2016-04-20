@@ -26,10 +26,6 @@ void PozyxClass::IRQ()
   _interrupt = 1;  
 }
 
-/**
- * Wait until pozyx has raised a specified event flag until a given timeout
- * This function can work in both polled and interupt mode
- */
 boolean PozyxClass::waitForFlag(uint8_t interrupt_flag, int timeout_ms)
 {
   long timer = millis();
@@ -62,9 +58,6 @@ boolean PozyxClass::waitForFlag(uint8_t interrupt_flag, int timeout_ms)
   return false;  
 }
 
-/**
- * Initiating the Pozyx shield and test the shield
- */
 int PozyxClass::begin(boolean print_result, int mode, int interrupts, int interrupt_pin){
   
   int status = POZYX_SUCCESS;
@@ -240,8 +233,8 @@ int PozyxClass::regFunction(uint8_t reg_address, uint8_t *params, int param_size
 }
 
 
-/*
- * Remotly write to a register of another pozyx device
+/**
+ * Wirelessly write a number of bytes to a specified register address on a remote Pozyx device using UWB.
  */
 int PozyxClass::remoteRegWrite(uint16_t destination, uint8_t reg_address, uint8_t *pData, int size)
 {
@@ -272,8 +265,8 @@ int PozyxClass::remoteRegWrite(uint16_t destination, uint8_t reg_address, uint8_
   return status;
 }
 
-/*
- * Remotly read from a register of another pozyx device
+/**
+ * Wirelessly read a number of bytes from a specified register address on a remote Pozyx device using UWB. 
  */
 int PozyxClass::remoteRegRead(uint16_t destination, uint8_t reg_address, uint8_t *pData, int size)
 {
@@ -306,7 +299,6 @@ int PozyxClass::remoteRegRead(uint16_t destination, uint8_t reg_address, uint8_t
   if(status == POZYX_FAILURE)
     return status;
     
-    
   // wait up to x ms to receive a response  
   if(waitForFlag(POZYX_INT_STATUS_RX_DATA, POZYX_DELAY_INTERRUPT))
   {   
@@ -326,12 +318,12 @@ int PozyxClass::remoteRegRead(uint16_t destination, uint8_t reg_address, uint8_t
     
   }else{
     // timeout
-    return POZYX_FAILURE;  
+    return POZYX_TIMEOUT;  
   }
 }
 
 /*
- * Remotly read from a register of another pozyx device
+ * Wirelessly call a register function with given parameters on a remote Pozyx device using UWB, the data from the function is stored in pData
  */
 int PozyxClass::remoteRegFunction(uint16_t destination, uint8_t reg_address, uint8_t *params, int param_size, uint8_t *pData, int size)
 {
@@ -377,17 +369,34 @@ int PozyxClass::remoteRegFunction(uint16_t destination, uint8_t reg_address, uin
   
       status = readRXBufferData(return_data, size+1);   
       
-      if(status == POZYX_FAILURE)
+      if(status == POZYX_FAILURE){
+        // debug information
+        // Serial.println("could not read from rx buffer");
         return status;    
+      }
   
       memcpy(pData, return_data+1, size);
         
       return return_data[0];
+    }else{
+      // wrong response received.
+      // debug information
+      /*
+      Serial.println("wrong response received. remoteRegFunction");
+      Serial.print("Remote id: ");
+      Serial.println(remote_network_id, HEX);
+      Serial.print("data length: ");
+      Serial.println(data_len);
+      */
+
+      return POZYX_FAILURE;  
     }     
     
   }else{
     // timeout
-    return POZYX_FAILURE;  
+    // debug information
+    // Serial.println("timeout from ack");
+    return POZYX_TIMEOUT;  
   }
 }
 
